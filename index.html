@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Info de jugador</title>
+</head>
+
+<body>
+  <input id="user" placeholder="Nombre del jugador">
+  <button onclick="buscar()">Buscar</button>
+
+  <div id="info">
+    <p id="nombre"></p>
+    <p id="id"></p>
+    <p id="premium"></p>
+    <p id="fecha"></p>
+  </div>
+
+  <script>
+    function buscar() {
+      const nombre = document.getElementById("user").value;
+      fetch(`<https://www.classicube.net/api/player/${nombre}`>)
+        .then(r => r.json())
+        .then(data => {
+          document.getElementById("nombre").textContent = "Nombre: " + data.username;
+          document.getElementById("id").textContent = "ID: " + data.id;
+          document.getElementById("premium").textContent = "Premium: " + (data.premium ? "Sí" : "No");
+          document.getElementById("fecha").textContent = "Registrado: " + new Date(data.registered * 1000).toLocaleString();
+        });
+    }
+  </script>
+</body>
+</html>
