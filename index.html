@@ -30,6 +30,24 @@
   </div>
 
   <script>
+    async function fetchConProxy(url) {
+      const proxies = [
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+        `https://corsproxy.io/?${encodeURIComponent(url)}`,
+        `https://cors.eu.org/${url}`
+      ];
+
+      for (let proxy of proxies) {
+        try {
+          const res = await fetch(proxy);
+          if (res.ok) return await res.json();
+        } catch (e) {
+          console.log("Proxy falló:", proxy);
+        }
+      }
+      throw new Error("No se pudo conectar con la API. Intenta de nuevo");
+    }
+
     async function buscar() {
       const nombre = document.getElementById("user").value.trim();
       const infoDiv = document.getElementById("info");
@@ -39,19 +57,16 @@
       if (!nombre) return;
       
       infoDiv.style.display = "block";
-      loading.textContent = "Buscando...";
+      loading.textContent = "Buscando a " + nombre + "...";
       errorP.textContent = "";
       ["nombre","id","premium","fecha"].forEach(id => document.getElementById(id).textContent = "");
 
       try {
-        // Usamos un proxy para evitar el bloqueo de CORS
-        const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://www.classicube.net/api/player/${nombre}.json`)}`;
-        const res = await fetch(url);
-        
-        if (!res.ok) throw new Error("Jugador no encontrado");
-        
-        const data = await res.json();
+        const apiUrl = `https://www.classicube.net/api/player/${nombre}.json`;
+        const data = await fetchConProxy(apiUrl);
         loading.textContent = "";
+        
+        if (!data || !data.Name) throw new Error("Jugador no encontrado");
         
         document.getElementById("nombre").textContent = "Nombre: " + data.Name;
         document.getElementById("id").textContent = "ID: " + data.ID;
@@ -61,6 +76,7 @@
       } catch (err) {
         loading.textContent = "";
         errorP.textContent = "Error: " + err.message;
+        console.error(err);
       }
     }
 
