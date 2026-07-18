@@ -4,13 +4,14 @@
   <meta charset="UTF-8">
   <title>Info de jugador - Classicube</title>
   <style>
-    body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; padding: 20px; }
-    input, button { padding: 8px 12px; border-radius: 8px; border: none; }
-    input { background: #1e293b; color: #fff; width: 220px; }
+    body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; padding: 20px; max-width: 500px; margin: auto; }
+    input, button { padding: 10px 14px; border-radius: 8px; border: none; font-size: 15px; }
+    input { background: #1e293b; color: #fff; width: 65%; }
     button { background: #3b82f6; color: white; cursor: pointer; }
     button:hover { background: #2563eb; }
     #info { margin-top: 20px; padding: 15px; background: #1e293b; border-radius: 10px; display: none; }
     .error { color: #f87171; }
+    .loading { color: #60a5fa; }
   </style>
 </head>
 
@@ -20,6 +21,7 @@
   <button onclick="buscar()">Buscar</button>
 
   <div id="info">
+    <p id="loading" class="loading"></p>
     <p id="nombre"></p>
     <p id="id"></p>
     <p id="premium"></p>
@@ -31,19 +33,25 @@
     async function buscar() {
       const nombre = document.getElementById("user").value.trim();
       const infoDiv = document.getElementById("info");
+      const loading = document.getElementById("loading");
       const errorP = document.getElementById("error");
       
       if (!nombre) return;
       
-      errorP.textContent = "";
       infoDiv.style.display = "block";
+      loading.textContent = "Buscando...";
+      errorP.textContent = "";
+      ["nombre","id","premium","fecha"].forEach(id => document.getElementById(id).textContent = "");
 
       try {
-        const res = await fetch(`https://www.classicube.net/api/player/${nombre}.json`);
+        // Usamos un proxy para evitar el bloqueo de CORS
+        const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://www.classicube.net/api/player/${nombre}.json`)}`;
+        const res = await fetch(url);
         
         if (!res.ok) throw new Error("Jugador no encontrado");
         
         const data = await res.json();
+        loading.textContent = "";
         
         document.getElementById("nombre").textContent = "Nombre: " + data.Name;
         document.getElementById("id").textContent = "ID: " + data.ID;
@@ -51,15 +59,11 @@
         document.getElementById("fecha").textContent = "Registrado: " + new Date(data.FirstLogin * 1000).toLocaleString("es-PE");
         
       } catch (err) {
+        loading.textContent = "";
         errorP.textContent = "Error: " + err.message;
-        document.getElementById("nombre").textContent = "";
-        document.getElementById("id").textContent = "";
-        document.getElementById("premium").textContent = "";
-        document.getElementById("fecha").textContent = "";
       }
     }
 
-    // Para que funcione con Enter
     document.getElementById("user").addEventListener("keypress", e => {
       if (e.key === "Enter") buscar();
     });
