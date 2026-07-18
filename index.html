@@ -6,11 +6,12 @@
   <style>
     body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; padding: 20px; max-width: 500px; margin: auto; }
     input, button { padding: 10px 14px; border-radius: 8px; border: none; font-size: 15px; }
-    input { background: #1e293b; color: #fff; width: 65%; }
+    input { background: #1e293b; color: #fff; width: 60%; }
     button { background: #3b82f6; color: white; cursor: pointer; }
     #info { margin-top: 20px; padding: 15px; background: #1e293b; border-radius: 10px; display: none; }
     .error { color: #f87171; }
     .loading { color: #60a5fa; }
+    .link-btn { display: inline-block; margin-top: 10px; padding: 8px 12px; background: #22c55e; color: white; text-decoration: none; border-radius: 6px; }
   </style>
 </head>
 
@@ -25,7 +26,7 @@
     <p id="id"></p>
     <p id="premium"></p>
     <p id="fecha"></p>
-    <p id="error" class="error"></p>
+    <div id="error" class="error"></div>
   </div>
 
   <script>
@@ -33,29 +34,27 @@
       const nombre = document.getElementById("user").value.trim();
       const infoDiv = document.getElementById("info");
       const loading = document.getElementById("loading");
-      const errorP = document.getElementById("error");
+      const errorDiv = document.getElementById("error");
       
       if (!nombre) return;
       
       infoDiv.style.display = "block";
       loading.textContent = "Buscando a " + nombre + "...";
-      errorP.textContent = "";
+      errorDiv.innerHTML = "";
       ["nombre","id","premium","fecha"].forEach(id => document.getElementById(id).textContent = "");
 
+      const apiUrl = `https://www.classicube.net/api/player/${encodeURIComponent(nombre)}.json`;
+
       try {
-        const apiUrl = `https://www.classicube.net/api/player/${encodeURIComponent(nombre)}.json`;
-        // allorigins/get SIEMPRE devuelve JSON, aunque falle
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
+        // Intentamos con el proxy más estable
+        const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`);
+        if(!res.ok) throw new Error("Proxy caído");
         
-        const res = await fetch(proxyUrl);
-        const wrapper = await res.json(); // esto siempre es JSON
-        
-        if (!wrapper.contents) throw new Error("No hubo respuesta del servidor");
-        
-        const data = JSON.parse(wrapper.contents); // aquí está el JSON real de Classicube
+        const wrapper = await res.json();
+        const data = JSON.parse(wrapper.contents);
         loading.textContent = "";
         
-        if (!data.Name) throw new Error("Jugador no encontrado: " + nombre);
+        if (!data.Name) throw new Error("Jugador no encontrado");
         
         document.getElementById("nombre").textContent = "Nombre: " + data.Name;
         document.getElementById("id").textContent = "ID: " + data.ID;
@@ -64,7 +63,12 @@
         
       } catch (err) {
         loading.textContent = "";
-        errorP.textContent = "Error: " + err.message;
+        // Si falla todo, damos link directo
+        errorDiv.innerHTML = `
+          No se pudo cargar automático por bloqueo del navegador.<br><br>
+          Pero puedes ver el perfil directo aquí: 
+          <a class="link-btn" href="https://www.classicube.net/player/${encodeURIComponent(nombre)}" target="_blank">Ver perfil de ${nombre}</a>
+        `;
       }
     }
 
