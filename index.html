@@ -1,11 +1,21 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Info de jugador</title>
+  <title>Info de jugador - Classicube</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; padding: 20px; }
+    input, button { padding: 8px 12px; border-radius: 8px; border: none; }
+    input { background: #1e293b; color: #fff; width: 220px; }
+    button { background: #3b82f6; color: white; cursor: pointer; }
+    button:hover { background: #2563eb; }
+    #info { margin-top: 20px; padding: 15px; background: #1e293b; border-radius: 10px; display: none; }
+    .error { color: #f87171; }
+  </style>
 </head>
 
 <body>
+  <h2>Buscar jugador de Classicube</h2>
   <input id="user" placeholder="Nombre del jugador">
   <button onclick="buscar()">Buscar</button>
 
@@ -14,20 +24,45 @@
     <p id="id"></p>
     <p id="premium"></p>
     <p id="fecha"></p>
+    <p id="error" class="error"></p>
   </div>
 
   <script>
-    function buscar() {
-      const nombre = document.getElementById("user").value;
-      fetch(`<https://www.classicube.net/api/player/${nombre}`>)
-        .then(r => r.json())
-        .then(data => {
-          document.getElementById("nombre").textContent = "Nombre: " + data.username;
-          document.getElementById("id").textContent = "ID: " + data.id;
-          document.getElementById("premium").textContent = "Premium: " + (data.premium ? "Sí" : "No");
-          document.getElementById("fecha").textContent = "Registrado: " + new Date(data.registered * 1000).toLocaleString();
-        });
+    async function buscar() {
+      const nombre = document.getElementById("user").value.trim();
+      const infoDiv = document.getElementById("info");
+      const errorP = document.getElementById("error");
+      
+      if (!nombre) return;
+      
+      errorP.textContent = "";
+      infoDiv.style.display = "block";
+
+      try {
+        const res = await fetch(`https://www.classicube.net/api/player/${nombre}.json`);
+        
+        if (!res.ok) throw new Error("Jugador no encontrado");
+        
+        const data = await res.json();
+        
+        document.getElementById("nombre").textContent = "Nombre: " + data.Name;
+        document.getElementById("id").textContent = "ID: " + data.ID;
+        document.getElementById("premium").textContent = "Premium: " + (data.Premium ? "Sí" : "No");
+        document.getElementById("fecha").textContent = "Registrado: " + new Date(data.FirstLogin * 1000).toLocaleString("es-PE");
+        
+      } catch (err) {
+        errorP.textContent = "Error: " + err.message;
+        document.getElementById("nombre").textContent = "";
+        document.getElementById("id").textContent = "";
+        document.getElementById("premium").textContent = "";
+        document.getElementById("fecha").textContent = "";
+      }
     }
+
+    // Para que funcione con Enter
+    document.getElementById("user").addEventListener("keypress", e => {
+      if (e.key === "Enter") buscar();
+    });
   </script>
 </body>
 </html>
