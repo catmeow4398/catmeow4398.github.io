@@ -8,7 +8,7 @@
     input, button { padding: 10px 14px; border-radius: 8px; border: none; font-size: 15px; }
     input { background: #1e293b; color: #fff; width: 65%; }
     button { background: #3b82f6; color: white; cursor: pointer; }
-    button:hover { background: #2563eb; }
+    button:active { background: #2563eb; }
     #info { margin-top: 20px; padding: 15px; background: #1e293b; border-radius: 10px; display: none; }
     .error { color: #f87171; }
     .loading { color: #60a5fa; }
@@ -17,7 +17,7 @@
 
 <body>
   <h2>Buscar jugador de Classicube</h2>
-  <input id="user" placeholder="Nombre del jugador">
+  <input id="user" placeholder="Ej: xLegit, andrew, Notch">
   <button onclick="buscar()">Buscar</button>
 
   <div id="info">
@@ -30,31 +30,16 @@
   </div>
 
   <script>
-    async function fetchConProxy(url) {
-      const proxies = [
-        `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-        `https://corsproxy.io/?${encodeURIComponent(url)}`,
-        `https://cors.eu.org/${url}`
-      ];
-
-      for (let proxy of proxies) {
-        try {
-          const res = await fetch(proxy);
-          if (res.ok) return await res.json();
-        } catch (e) {
-          console.log("Proxy falló:", proxy);
-        }
-      }
-      throw new Error("No se pudo conectar con la API. Intenta de nuevo");
-    }
-
     async function buscar() {
       const nombre = document.getElementById("user").value.trim();
       const infoDiv = document.getElementById("info");
       const loading = document.getElementById("loading");
       const errorP = document.getElementById("error");
       
-      if (!nombre) return;
+      if (!nombre) {
+        errorP.textContent = "Escribe un nombre primero";
+        return;
+      }
       
       infoDiv.style.display = "block";
       loading.textContent = "Buscando a " + nombre + "...";
@@ -62,11 +47,23 @@
       ["nombre","id","premium","fecha"].forEach(id => document.getElementById(id).textContent = "");
 
       try {
-        const apiUrl = `https://www.classicube.net/api/player/${nombre}.json`;
-        const data = await fetchConProxy(apiUrl);
+        const apiUrl = `https://www.classicube.net/api/player/${encodeURIComponent(nombre)}.json`;
+        const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(apiUrl)}`;
+        
+        const res = await fetch(proxyUrl);
+        const text = await res.text(); // lo leemos como texto primero
+        
+        let data;
+        try {
+          data = JSON.parse(text); // intentamos convertirlo a JSON
+        } catch {
+          throw new Error("El servidor respondió mal. El jugador probablemente no existe.");
+        }
+        
         loading.textContent = "";
         
-        if (!data || !data.Name) throw new Error("Jugador no encontrado");
+        // Classicube devuelve "Name": null si no existe
+        if (!data || !data.Name) throw new Error("Jugador no encontrado: " + nombre);
         
         document.getElementById("nombre").textContent = "Nombre: " + data.Name;
         document.getElementById("id").textContent = "ID: " + data.ID;
@@ -76,7 +73,6 @@
       } catch (err) {
         loading.textContent = "";
         errorP.textContent = "Error: " + err.message;
-        console.error(err);
       }
     }
 
